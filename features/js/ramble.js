@@ -208,6 +208,43 @@ Ramble.HtmlOutputter = {
     }
 };
 
+/**
+ * Provides a the context of a step definition supplying helpers.
+ * @author Jamie Hill <jamie@soniciq.com>
+ * @version $Rev$
+ */
+Ramble.Context = { 
+  iframe: null,
+  contents: null,
+  visit: function(url) {
+      // should be checking for 404, 500 here with an ajax call, since
+      // you can't get it in iframes?
+      // could be tricky if a page is meant to be served N times only.
+      if(!url) throw('Problem getting path for: ' + url);
+      Ramble._debug("visit() ", url);
+      this.iframe.trigger('urlChange.ramble', { href: url });
+  },
+  clickLink: function(text) {
+    var link = this.contents.find('a').filter(function() { return $(this).text() == text; });
+    if(!link.length) throw("Can't find link: " + text);
+    link.click();
+  },
+  clickButton: function(text) {
+    var button = this.contents.find('input[type="submit"]').filter(function() { return $(this).val() == text; })
+    if(!button.length) throw("Can't find button named: " + text);
+    button.click();
+    this.pageLoading = true;
+  },
+  fillIn: function(labelText, value) {
+    var label = this.contents.find('label').filter(function() { return $(this).text() == labelText; }).first();
+    var field = this.contents.find('input#' + label.attr('for'));
+    if(!field.length) throw("Can't find field for: " + labelText);
+    field.val(value);
+  },
+  assertHasContent: function(content) {
+    if(this.contents.text().indexOf(content) == -1) throw('Should have seen: ' + content);
+  }
+}
 
 /**
  * Loads and runs Gherkin feature files against Step matcher files
@@ -215,14 +252,13 @@ Ramble.HtmlOutputter = {
  * @version $Rev$
  */
 Ramble.Runner =  {
-    iframe: null,
-    workspace_selector: '#workspace',
+    workspaceSelector: '#workspace',
     outputter: Ramble.HtmlOutputter,
     parser: Ramble.Parser,
     paths: [],
     features: [],
     matchers: [],
-    page_loading: false,
+    pageLoading: false,
     options: {
         speed: "fast"
     },
@@ -230,20 +266,20 @@ Ramble.Runner =  {
         this.options = $.extend(this.options, options);
         this.outputter.start();
         if (!this.iframe) {
-            this.iframe = $('<iframe id="browser" />').appendTo(this.workspace_selector);
-            this.iframe.css({ width: 500, height: 300 });
-            this.iframe.load(function() {
-                Ramble.Runner.page_loading = false;
-                var contents = $(this).contents();
-                contents.find('a').click(function() {
-                    Ramble.Runner.getUrl($(this).attr('href'));
+            Ramble.Context.iframe = $('<iframe id="browser" />').appendTo(this.workspaceSelector);
+            Ramble.Context.iframe.css({ width: 500, height: 300 });
+            Ramble.Context.iframe.load(function() {
+                Ramble.Runner.pageLoading = false;
+                Ramble.Context.contents = $(this).contents();
+                Ramble.Context.contents.find('a').click(function() {
+                    Ramble.Context.visit($(this).attr('href'));
                 })
-                contents.find('form').submit(function() {
-                    Ramble.Runner.page_loading = true;
+                Ramble.Context.contents.find('form').submit(function() {
+                    Ramble.Runner.pageLoading = true;
                 });
-                Ramble.Runner.run(contents);
+                Ramble.Runner.run();
             }).bind('urlChange.ramble', function(event, data) {
-                Ramble.Runner.page_loading = true;
+                Ramble.Runner.pageLoading = true;
                 $(this).attr('src', data.href);
             });
         }
@@ -268,19 +304,20 @@ Ramble.Runner =  {
     /**
      * Test run method, a "breaking queue"
      * @public
-     * @param NodeList elements jQuery nodelist of elements to run tests on
      * @returns void
      */
-    run: function(elements) {
+    run: function() {
+        var self = this;
+        
         while (this._queue_index < this._queue.length) {
-            if (Ramble.Runner.page_loading) {
+            if (Ramble.Runner.pageLoading) {
                 return;
             } else if (Ramble.Runner.options.speed != "fast") {
                 var date = new Date();
                 var time = date.getTime();
                 clearTimeout(Ramble.Runner._time_out);
                 Ramble.Runner._time_out = setTimeout(function() {
-                    Ramble.Runner.run(elements);
+                    Ramble.Runner.run();
                 }, 100);
                 if (time < Ramble.Runner._time_next) {
                     return;
@@ -292,7 +329,7 @@ Ramble.Runner =  {
             var item = this._queue[ this._queue_index ];
             var found;
             $.each(this._befores, function() {
-                this.apply(elements);
+                this.apply(Ramble.Context);
             });
             switch (item.type) {
                 case "feature":
@@ -318,7 +355,7 @@ Ramble.Runner =  {
                         });
                         if (found !== null) {
                             try {
-                                var result = found.test.apply(elements, found.matches);
+                                var result = found.test.apply(Ramble.Context, found.matches);
                                 item.status = "pass";
                             } catch (error) {
                                 item.status = "fail";
@@ -358,13 +395,6 @@ Ramble.Runner =  {
      */
     addPath: function(regexp, path) {
         this.paths.push({ regexp: regexp, path: path });
-    },
-    getUrl: function(url) {
-        // should be checking for 404, 500 here with an ajax call, since
-        // you can't get it in iframes?
-        // could be tricky if a page is meant to be served N times only.
-        Ramble._debug("getUrl() ", url);
-        this.iframe.trigger('urlChange.ramble', { href: url });
     },
     pathTo: function(path_name) {
         found = null;
