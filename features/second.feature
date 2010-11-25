@@ -8,7 +8,7 @@ Feature: Following links and filling out forms
     Given I am on page two
     Then I should see "Yay, you found me!"
 
-  Scenario: User fill out a form
+  Scenario: User fills out a form
     Given I am on the homepage
     When I make the heading "orange"
     And I follow "Another page"

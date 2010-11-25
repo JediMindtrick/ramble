@@ -39,7 +39,7 @@ Features are exactly the same as in Cucumber, so you can do something like the f
       As a visitor
       I want to be able to submit them via a form
   
-      Scenario: User fill out a form
+      Scenario: User fills out a form
         Given I am on the homepage
         And I follow "Tell us your name"
         And I fill in "First name" with "Jamie"
@@ -49,7 +49,7 @@ Features are exactly the same as in Cucumber, so you can do something like the f
         
 ### Step definitions
 
-Step definitions can be defined in a plain old javascript files with plain old jQuery, in this case web-steps.js. Currently the step definition are expected to throw an error if they cannot be fulfilled, this may change when a solid API is nailed down:
+Step definitions can be defined in a plain old javascript files with plain old jQuery, in this case web-steps.js. Currently the step definitions are expected to throw an error if they cannot be fulfilled, this may change when a solid API is nailed down:
 
     // The value of 'this' is the current ramble context object. To gain access to the jQuery collection, use 
     // 'this.contents'.
@@ -59,7 +59,7 @@ Step definitions can be defined in a plain old javascript files with plain old j
 
 ### Running locally
 
-There is a simple server script allowing the features to be run locally (requires Ruby). If you want to see it in action, just run:
+There is a simple server script allowing the features to be run locally (requires Ruby). If you want to see Ramble in action, just run:
 
     cd ramble
     ruby server.rb
