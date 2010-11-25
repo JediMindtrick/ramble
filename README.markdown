@@ -1,6 +1,6 @@
 Ramble
 =======
-**The Javascript Port of Cucumber**
+**Cucumber in the browser**
 
 Intro
 -----
@@ -51,18 +51,17 @@ Features are exactly the same as in Cucumber, so you can do something like the f
 
 Step definitions can be defined in a plain old javascript files with plain old jQuery, in this case web-steps.js. Currently the step definition are expected to throw an error if they cannot be fulfilled, this may change when a solid API is nailed down:
 
-    // The value of 'this' is the current document as a jQuery object.
-    ramble.match(/^I follow "(.+)"$/, function(link_text) {
-      var link = this.find('a').filter(function() { return $(this).text() == link_text; });
-      if(!link.length) throw("Can't find link: " + link_text);
-      link.click();
+    // The value of 'this' is the current ramble context object. To gain access to the jQuery collection, use 
+    // 'this.contents'.
+    ramble.match(/^I follow "(.+)"$/, function(linkText) {
+      this.visit(linkText);
     });
 
 ### Running locally
 
 There is a simple server script allowing the features to be run locally (requires Ruby). If you want to see it in action, just run:
 
-    cd /path/to/ramble/checkout
+    cd ramble
     ruby server.rb
 
 …and then visit http://localhost:1234/features in your browser (tested in Firefox, Chrome and Safari). Note that Ramble is not at all dependent on Ruby, it is just used for running a local test server.
