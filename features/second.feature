@@ -17,4 +17,5 @@ Feature: Following links and filling out forms
     # The following step should fail.
     And I fill in "Age" with "31"
     And I press "Submit"
-    Then I should see "Done"
+    Then I should be on page three
+    And I should see "Done"

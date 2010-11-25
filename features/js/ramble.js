@@ -243,6 +243,15 @@ Ramble.Context = {
   },
   assertHasContent: function(content) {
     if(this.contents.text().indexOf(content) == -1) throw('Should have seen: ' + content);
+  },
+  assertCurrentPath: function(path) {
+    this.assertEqual(path, this.currentPath());
+  },
+  currentPath: function() {
+    return this.iframe[0].contentWindow.location.pathname;
+  },
+  assertEqual: function(expected, result) {
+    if (expected != result) throw('Expected: ' + expected + ', got: ' + result);
   }
 }
 
