@@ -250,8 +250,17 @@ Ramble.Context = {
   currentPath: function() {
     return this.iframe[0].contentWindow.location.pathname;
   },
+  assert: function(value, message) {
+    if (!value) throw(message || ('Expected value to evaluate to true: ' + value));
+  },
   assertEqual: function(expected, result) {
     if (expected != result) throw('Expected: ' + expected + ', got: ' + result);
+  },
+  // Proxy to this.contents that throws error if no elements found (maybe add as jQuery plugin).
+  find: function(selector) {
+    var result = this.contents.find(selector);
+    this.assert(result.length, "Couldn't find element(s) for selector: " + selector);
+    return result;
   }
 }
 

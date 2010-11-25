@@ -25,7 +25,5 @@ ramble.match(/^I should be on (.+)$/, function(pageName) {
 });
 
 ramble.match(/^I make the heading "(.+)"$/, function(color) {
-  var heading = this.contents.find('h1');
-  if(!heading.length) throw("Can't find heading");
-  heading.css('color', color);
+  this.find('h1').css('color', color);
 });
