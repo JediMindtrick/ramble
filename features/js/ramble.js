@@ -6,7 +6,7 @@
  * @requires jQuery
  */
 var Ramble = {
-    debug: false,
+    debug: true,
     _debug: function() {
         if (this.debug) console.log(arguments);
     }
@@ -271,19 +271,26 @@ Ramble.Context = {
  */
 Ramble.Runner =  {
     workspaceSelector: '#workspace',
-    outputter: Ramble.HtmlOutputter,
+    outputter: [],// [Ramble.HtmlOutputter],
     parser: Ramble.Parser,
     paths: [],
     features: [],
     matchers: [],
     pageLoading: false,
     retryOnFailWithinMilliseconds: 0,
+    //continueTest = false;
     options: {
         speed: "fast"
     },
     init: function(options) {
         this.options = $.extend(this.options, options);
-        this.outputter.start();
+        if(this.outputter === undefined)
+        	this.outputter = [];
+        this.outputter.push(Ramble.HtmlOutputter);
+        for(var i = 0, l = this.outputter.length; i < l; i++){
+        	this.outputter[i].start();
+        }
+        //this.outputter.start();
         if (!this.iframe) {
             Ramble.Context.iframe = $('<iframe id="browser" />').appendTo(this.workspaceSelector);
             Ramble.Context.iframe.css({ width: 500, height: 300 });
@@ -320,6 +327,59 @@ Ramble.Runner =  {
             async: false
         });
     },
+    /**
+     * Step run method
+     * @private
+     * @returns void
+     */
+    _runStep : function(item,found){
+    	var step = item.text;
+        if (item.comment == true) {
+            item.status = "comment";
+        } else if ($.trim(step) == "pending") {
+            item.status = "pending";
+        } else {
+            found = null;
+            $.each(this.matchers, function() {
+                var match = step.replace(/^(Given|When|Then|And)\s+/, '').match(this.regexp);
+                if (match) {
+                    found = { matches: match.slice(1), test: this.test };
+                    return;
+                }
+            });
+            if (found !== null) {
+                try {
+                    var result = found.test.apply(Ramble.Context, found.matches);
+                    item.status = "pass";
+                } catch (error) {
+                    item.status = "fail";
+                    item.error = error;
+                }
+            } else {
+                item.status = "missing";
+            }
+        }
+
+		
+        if (Ramble.Runner.retryOnFailWithinMilliseconds > 0) {
+          var date = new Date();
+          var time = date.getTime();
+          if ( time > item.start_time + Ramble.Runner.retryOnFailWithinMilliseconds ) {
+            Ramble.Runner.retryOnFailWithinMilliseconds = 0;
+            //this.continueTest = true;
+          }
+        }
+        //else
+	        //this.continueTest = true;
+
+        if (Ramble.Runner.retryOnFailWithinMilliseconds === 0 || item.status != "fail") {
+	        for(var i = 0, l = this.outputter.length; i < l; i++){
+    	    	this.outputter[i].outputStep(item);
+        	}
+            //this.outputter.outputStep(item);
+        }
+    },
+    onEnd : function () {},
     /**
      * Test run method, a "breaking queue"
      * @public
@@ -359,59 +419,33 @@ Ramble.Runner =  {
             });
             switch (item.type) {
                 case "feature":
-                    this.outputter.outputFeature(item);
+		        	for(var i = 0, l = this.outputter.length; i < l; i++){
+	    	    		this.outputter[i].outputFeature(item);
+		        	}
+                    //this.outputter.outputFeature(item);
                 break;
                 case "scenario":
-                    this.outputter.outputScenario(item);
+                	for(var i = 0, l = this.outputter.length; i < l; i++){
+	    	    		this.outputter[i].outputScenario(item);
+		        	}
                 break;
                 case "step":
-                    var step = item.text;
-                    if (item.comment == true) {
-                        item.status = "comment";
-                    } else if ($.trim(step) == "pending") {
-                        item.status = "pending";
-                    } else {
-                        found = null;
-                        $.each(this.matchers, function() {
-                            var match = step.replace(/^(Given|When|Then|And)\s+/, '').match(this.regexp);
-                            if (match) {
-                                found = { matches: match.slice(1), test: this.test };
-                                return;
-                            }
-                        });
-                        if (found !== null) {
-                            try {
-                                var result = found.test.apply(Ramble.Context, found.matches);
-                                item.status = "pass";
-                            } catch (error) {
-                                item.status = "fail";
-                                item.error = error;
-                            }
-                        } else {
-                            item.status = "missing";
-                        }
-                    }
-
-                    if (Ramble.Runner.retryOnFailWithinMilliseconds > 0) {
-                      var date = new Date();
-                      var time = date.getTime();
-                      if ( time > item.start_time + Ramble.Runner.retryOnFailWithinMilliseconds ) {
-                        Ramble.Runner.retryOnFailWithinMilliseconds = 0;
-                      }
-                    }
-
-                    if (Ramble.Runner.retryOnFailWithinMilliseconds === 0 || item.status != "fail") {
-                        this.outputter.outputStep(item);
-                    }
+                	this._runStep(item,found);
                 break;
-            }
+            }//end switch
+            
             if (Ramble.Runner.retryOnFailWithinMilliseconds === 0 || item.status != "fail") {
                 this._queue_index++;
                 if ( this._queue_index == this._queue.length ) {
-                    this.outputter.stop();
+                	for(var i = 0, l = this.outputter.length; i < l; i++){
+	    	    		this.outputter[i].stop();
+		        	}
+                    //this.outputter.stop();
                 }
             }
-        }
+            
+        }//end while loop
+        this.onEnd();
     },
     /**
      * Add a matcher
