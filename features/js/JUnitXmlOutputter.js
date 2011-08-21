@@ -1,3 +1,5 @@
+
+
 Ramble.JUnitOutputter = function(){
 	//this is merely the root
 	var ResultsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"

@@ -436,6 +436,7 @@ Ramble.Runner =  {
             
             if (Ramble.Runner.retryOnFailWithinMilliseconds === 0 || item.status != "fail") {
                 this._queue_index++;
+                
                 if ( this._queue_index == this._queue.length ) {
                 	for(var i = 0, l = this.outputter.length; i < l; i++){
 	    	    		this.outputter[i].stop();
