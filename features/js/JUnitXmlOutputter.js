@@ -6,6 +6,8 @@ Ramble.JUnitOutputter = function(){
 						+ "<testsuites>"
 						+ "</testsuites>";
 	
+	
+	
 	var toReturn =
 	{
 	    /**
