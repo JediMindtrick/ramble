@@ -283,33 +283,35 @@ Ramble.Runner =  {
         speed: "fast"
     },
     init: function(options) {
-        this.options = $.extend(this.options, options);
-        if(this.outputter === undefined)
-        	this.outputter = [];
-        this.outputter.push(Ramble.HtmlOutputter);
-        for(var i = 0, l = this.outputter.length; i < l; i++){
-        	this.outputter[i].start();
-        }
-        //this.outputter.start();
-        if (!this.iframe) {
-            Ramble.Context.iframe = $('<iframe id="browser" />').appendTo(this.workspaceSelector);
-            Ramble.Context.iframe.css({ width: 500, height: 300 });
-            Ramble.Context.iframe.load(function() {
-                Ramble.Runner.pageLoading = false;
-                Ramble.Context.contents = $(this).contents();
-                Ramble.Context.contents.find('a').click(function() {
-                    Ramble.Context.visit($(this).attr('href'));
-                })
-                Ramble.Context.contents.find('form').submit(function() {
-                    Ramble.Runner.pageLoading = true;
-                });
-                Ramble.Runner.run();
-            }).bind('urlChange.ramble', function(event, data) {
-                Ramble.Runner.pageLoading = true;
-                $(this).attr('src', data.href);
-            });
-        }
-    },
+	        this.options = $.extend(this.options, options);
+	        if(this.outputter === undefined)
+	        	this.outputter = [];
+	        this.outputter.push(Ramble.HtmlOutputter);
+	        for(var i = 0, l = this.outputter.length; i < l; i++){
+	        	this.outputter[i].start();
+	        }
+	        //this.outputter.start();
+	        if (!this.iframe) {
+	            Ramble.Context.iframe = $('<iframe id="browser" />').appendTo(this.workspaceSelector);
+	            Ramble.Context.iframe.css({ width: 500, height: 300 });
+	            Ramble.Context.iframe
+	            	.load(function() {
+		                Ramble.Runner.pageLoading = false;
+		                Ramble.Context.contents = $(this).contents();
+		                Ramble.Context.contents.find('a').click(function() {
+		                    Ramble.Context.visit($(this).attr('href'));
+		                })
+		                Ramble.Context.contents.find('form').submit(function() {
+		                    Ramble.Runner.pageLoading = true;
+		                });
+		                Ramble.Runner.run();
+	            	})
+	            	.bind('urlChange.ramble', function(event, data) {
+		                Ramble.Runner.pageLoading = true;
+		                $(this).attr('src', data.href);
+	            	});
+	        }
+	    },
     /**
      * Loads a feature file using Ajax
      * @public
@@ -340,6 +342,7 @@ Ramble.Runner =  {
             item.status = "pending";
         } else {
             found = null;
+            //try to find the matching implementation step
             $.each(this.matchers, function() {
                 var match = step.replace(/^(Given|When|Then|And)\s+/, '').match(this.regexp);
                 if (match) {
@@ -389,24 +392,35 @@ Ramble.Runner =  {
         var self = this;
         
         while (this._queue_index < this._queue.length) {
+        	//wait for the page to load (which will call .run() again on load),
+        	//and/or pause between steps
             if (Ramble.Runner.pageLoading) {
                 return;
             } else if (Ramble.Runner.options.speed != "fast") {
                 var date = new Date();
                 var time = date.getTime();
                 clearTimeout(Ramble.Runner._time_out);
-                Ramble.Runner._time_out = setTimeout(function() {
-                    Ramble.Runner.run();
-                }, 100);
+            //    Ramble.Runner._time_out = setTimeout(function() {
+            //        Ramble.Runner.run();
+            //    }, 100);
+            
+            	//this is the pause function...once the timeout expires, it will trigger us back into
+            	//run() and this while loop
                 if (time < Ramble.Runner._time_next) {
+                	Ramble.Runner._time_out = setTimeout(function() {
+        	            Ramble.Runner.run();
+		                }, 100);
                     return;
                 }
+                //set the next step time...this really should go at the bottom of the while loop
                 Ramble.Runner._time_next = time + Ramble.Runner._times[ Ramble.Runner.options.speed ];
             }
             
             
             var item = this._queue[ this._queue_index ];
 
+			//start_time will be undefined the first time we attempt a step, before we attempt the step
+			//retryOnFailWithinMilliseconds will be set within the steps themselves
             if ( item.start_time === undefined ) {
                 Ramble.Runner.retryOnFailWithinMilliseconds = 0;
                 var date = new Date();
